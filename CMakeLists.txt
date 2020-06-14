@@ -130,13 +130,16 @@ else()
 	endif(CMAKE_BUILD_TYPE MATCHES Debug)
 endif()
 
-# Generate source from the bindings file
-message(STATUS "Generating Bindings")
-execute_process(COMMAND "python" "-c" "import binding_generator; binding_generator.generate_bindings(\"${GODOT_CUSTOM_API_FILE}\")"
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	RESULT_VARIABLE GENERATION_RESULT
-	OUTPUT_VARIABLE GENERATION_OUTPUT)
-message(STATUS ${GENERATION_RESULT} ${GENERATION_OUTPUT})
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/__pycache__")
+    # Generate source from the bindings file
+    message(STATUS "Generating Bindings")
+    execute_process(COMMAND 
+        "python" "-c" "import binding_generator; binding_generator.generate_bindings(\"${GODOT_CUSTOM_API_FILE}\")"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        RESULT_VARIABLE GENERATION_RESULT
+        OUTPUT_VARIABLE GENERATION_OUTPUT)
+    message(STATUS ${GENERATION_RESULT} ${GENERATION_OUTPUT})
+endif()
 
 # Get Sources
 file(GLOB_RECURSE SOURCES src/*.c**)
@@ -145,11 +148,15 @@ file(GLOB_RECURSE HEADERS include/*.h**)
 # Define our godot-cpp library
 add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 target_include_directories(${PROJECT_NAME}
-	PUBLIC
-	include
-	include/core
-	include/gen
-)
+    PRIVATE include
+    PRIVATE include/core
+    PRIVATE include/gen)
+
+target_include_directories(${PROJECT_NAME}
+    SYSTEM INTERFACE
+        include
+        include/core
+        include/gen)
 
 # Put godot headers as SYSTEM PUBLIC to exclude warnings from irrelevant headers
 target_include_directories(${PROJECT_NAME}
